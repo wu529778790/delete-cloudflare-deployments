@@ -17,7 +17,7 @@
 
 将以下变量配置到本地环境或 CI 的 Secrets：
 
-```
+```shell
 CF_API_TOKEN=your_cloudflare_api_token
 CF_ACCOUNT_ID=your_cloudflare_account_id
 # 可选：保留最新的部署数量，默认 10
@@ -31,7 +31,7 @@ CF_KEEP_LATEST=10
 
 ### 2) 安装与运行
 
-```
+```shell
 pnpm i
 pnpm start
 ```
@@ -42,47 +42,14 @@ pnpm start
 
 保留生产部署（canonical deployment），清理其余部署：
 
-```
+```shell
 CF_API_TOKEN=... CF_ACCOUNT_ID=... CF_PAGES_PROJECT_NAME=your_project pnpm run delete:project
 ```
 
 可选：强制删除具有别名的部署（可能影响已别名的预览地址）：
 
-```
+```shell
 CF_DELETE_ALIASED_DEPLOYMENTS=true CF_API_TOKEN=... CF_ACCOUNT_ID=... CF_PAGES_PROJECT_NAME=your_project pnpm run delete:project
-```
-
----
-
-## 在 GitHub Actions 中使用
-
-在仓库 `Settings -> Secrets and variables -> Actions` 添加：
-
-- `CF_API_TOKEN`
-- `CF_ACCOUNT_ID`
-- （可选）`CF_KEEP_LATEST`
-
-示例步骤：
-
-```yaml
-jobs:
-  cleanup:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'pnpm'
-      - run: pnpm i
-      - run: pnpm start
-        env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_KEEP_LATEST: 10
 ```
 
 ---
