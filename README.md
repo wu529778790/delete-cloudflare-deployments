@@ -1,84 +1,96 @@
-# Cloudflare Pages 部署记录清理工具
+# Cloudflare Pages 部署记录清理工具（Node + pnpm）
 
-解决 Cloudflare Pages 部署记录过多，导致无法创建新部署，无法删除项目的问题。
-
-这是一个用于清理 Cloudflare Pages 项目旧部署记录的自动化工具。该工具会保留每个项目最新的 10 个部署记录，删除更早的部署以节省空间。
+清理 Cloudflare Pages 项目旧部署记录。对每个项目保留最新的 N 个部署（默认 10），删除更早的部署以节省空间。
 
 ## 功能特点
 
-- 自动获取账号下所有的 Cloudflare Pages 项目（一次运行获取最活跃的10个）
-- 对每个项目只保留最新的 10 个部署记录
-- 自动删除较早的部署记录
-- 支持批量处理多个项目
-- 循环处理直到清理完所有旧记录
-- 支持通过 GitHub Actions 自动运行
+- **批量项目**：自动获取账号下所有 Cloudflare Pages 项目并逐一清理
+- **保留最新 N 条**：默认保留 10 条（可通过环境变量配置）
+- **循环处理**：按页获取部署记录，直至每个项目的部署数量小于等于阈值
+- **pnpm 运行**：使用 pnpm 管理依赖与运行脚本
 
 ---
 
-## 使用方法（推荐 GitHub Actions 自动运行）
+## 使用方法
 
-### 获取必要信息
+### 1) 准备环境变量
 
-首先需要获取以下信息：
-
-- Cloudflare Account ID
-- Cloudflare API Token（需要有 Pages 的编辑权限）
-
-#### 获取 API Token
-
-1. 登录 Cloudflare 控制台：<https://dash.cloudflare.com/profile/api-tokens>
-2. 点击 "Create Token" 按钮
-3. 选择 "Create Custom Token"
-4. 设置以下权限：
-   - Account - Cloudflare Pages - Edit
-   - Zone - DNS - Edit（如果需要）
-5. 在 "Account Resources" 中选择你的账号
-6. 设置 Token 名称（例如：pages-deployment-cleanup）
-7. 点击 "Continue to summary" 然后创建 Token
-8. 保存显示的 Token 值（这个值只会显示一次）
-
-**重要提示：** API Token 只会显示一次，请务必立即保存。
-
-#### 获取 Account ID
-
-1. 登录 Cloudflare 控制台
-2. 在右侧边栏找到 "Account ID"
-3. 或者从浏览器地址栏中复制，格式类似：<https://dash.cloudflare.com/**your-account-id>**
-
-### 设置仓库变量
-
-在 Fork 后的仓库中配置以下变量：
+将以下变量配置到本地环境或 CI 的 Secrets：
 
 ```
 CF_API_TOKEN=your_cloudflare_api_token
 CF_ACCOUNT_ID=your_cloudflare_account_id
+# 可选：保留最新的部署数量，默认 10
+CF_KEEP_LATEST=10
+```
+
+如何获取：
+
+- **API Token**：`Account -> API Tokens -> Create Token`，授予 `Account - Cloudflare Pages - Edit` 权限。
+- **Account ID**：登录 Cloudflare 后在右上角或地址栏可见。
+
+### 2) 安装与运行
+
+```
+pnpm i
+pnpm start
+```
+
+脚本会遍历账户下所有 Pages 项目并清理旧部署。
+
+### 3) 可选：仅删除单个项目的所有历史部署（保留生产部署）
+
+保留生产部署（canonical deployment），清理其余部署：
+
+```
+CF_API_TOKEN=... CF_ACCOUNT_ID=... CF_PAGES_PROJECT_NAME=your_project pnpm run delete:project
+```
+
+可选：强制删除具有别名的部署（可能影响已别名的预览地址）：
+
+```
+CF_DELETE_ALIASED_DEPLOYMENTS=true CF_API_TOKEN=... CF_ACCOUNT_ID=... CF_PAGES_PROJECT_NAME=your_project pnpm run delete:project
 ```
 
 ---
 
-## GitHub Actions 配置
+## 在 GitHub Actions 中使用
 
-要设置自动运行，需要在 GitHub 仓库中配置以下 Secrets：
+在仓库 `Settings -> Secrets and variables -> Actions` 添加：
 
-1. 打开仓库的 Settings
-2. 进入 Secrets and variables → Actions
-3. 添加以下 secrets：
-   - CF_API_TOKEN
-   - CF_ACCOUNT_ID
+- `CF_API_TOKEN`
+- `CF_ACCOUNT_ID`
+- （可选）`CF_KEEP_LATEST`
+
+示例步骤：
+
+```yaml
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+      - run: pnpm i
+      - run: pnpm start
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KEEP_LATEST: 10
+```
 
 ---
 
 ## 常见问题
 
-### 1. API 返回 403 错误
-
-检查 API Token 是否具有正确的权限，确保包含了 Pages 的编辑权限。
-
-### 2. 部署记录未完全清理
-
-由于 API 限制，每次只能获取 25 个记录。脚本会自动循环处理，多运行几次即可。
-
-如果你的部署记录太多，每一次运行可能需要比较长的时间。
+- **API 返回 403**：检查 API Token 权限是否包含 `Cloudflare Pages - Edit`。
+- **清理不完全**：Cloudflare API 按页返回（默认每页最多 25 条）。脚本会循环调用，直到每个项目的部署数量小于等于阈值。
 
 ---
 
