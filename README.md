@@ -2,6 +2,8 @@
 
 清理 Cloudflare Pages 项目旧部署记录：对每个项目保留最新的 N 个部署（默认 10），删除更早的部署以节省空间。基于 Node + pnpm 实现，并通过 GitHub Actions 自动运行。
 
+> Your project has too many deployments to be deleted, follow this guide to delete them: <https://cfl.re/3CXesln>
+
 ## 功能特点
 
 - **批量项目**：自动获取账号下所有 Cloudflare Pages 项目并逐一清理
