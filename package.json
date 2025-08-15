@@ -1,0 +1,20 @@
+{
+  "name": "delete-cloudflare-deployments",
+  "version": "1.0.0",
+  "description": "Cleanup Cloudflare Pages deployments across all projects, keeping the latest N (default 10).",
+  "main": "cleanup_pages.js",
+  "scripts": {
+    "start": "node cleanup_pages.js",
+    "delete:project": "node index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  },
+  "packageManager": "pnpm@9",
+  "dependencies": {
+    "exponential-backoff": "^3.1.0",
+    "node-fetch": "^2.6.7"
+  }
+}
